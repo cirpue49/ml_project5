@@ -263,7 +263,7 @@ def next_move(hunter_position, hunter_heading, target_measurement, max_distance,
 
 n = 1
 count = 0
-for i in range(n):
+for i in range(2):
     target = robot(0.0, 10.0, 0.0, 2*pi / 30, 1.5)
     measurement_noise = .05*target.distance
     target.set_noise(0.0, 0.0, measurement_noise)

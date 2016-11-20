@@ -194,33 +194,16 @@ def next_move(hunter_position, hunter_heading, target_measurement, max_distance,
     #count trials in OTHER[6][0]
     OTHER[6][0]= OTHER[6][0] + 1
 
-    #when the agent is close enough to catch the target
-    if distance_between(hunter_position, xy_estimate) < max_distance:
-        heading_to_target = get_heading(hunter_position, xy_estimate)
-        heading_difference = angle_trunc(heading_to_target-hunter_heading)
-        turning =  heading_difference # turn towards the target
-        distance = distance_between(hunter_position, xy_estimate)
     
-    #start estimatig a next location of the target by using particle filter    
-    elif OTHER[6][0] > 20:
-        #using xy_estimate instead of target_measurement
-        heading_to_target = get_heading(hunter_position, xy_estimate)
-        heading_difference = angle_trunc(heading_to_target-hunter_heading)
-        #PID control
-        #twiddle [-0.3673, 0.10000000000000002, 0.03]
-        #0.68, 34, 50
-        # turning =  heading_difference + heading_difference * (-0.36)  + (heading_difference-OTHER[4][0])*0.1 + OTHER[5][0] * 0.03
-        turning =  heading_difference + heading_difference * 0.2  + (heading_difference-OTHER[4][0])*0.1 + OTHER[5][0] * 0.03
-        #0.8, 40, 50
+    heading_to_target = get_heading(hunter_position, xy_estimate)
+    heading_difference = angle_trunc(heading_to_target-hunter_heading)
+    turning =  heading_difference # turn towards the target
+    if distance_between(hunter_position, xy_estimate) < max_distance:
         distance = distance_between(hunter_position, xy_estimate)
-
-    #just chasing the target, during the first 20 trials 
-    else: 
-        heading_to_target = get_heading(hunter_position,target_measurement )
-        heading_difference = angle_trunc(heading_to_target-hunter_heading)
-        turning =  heading_difference 
+    else:
         distance = max_distance
-       
+    
+    
     OTHER[4][0] = heading_difference
     OTHER[5][0] += turning
     return turning, distance, OTHER

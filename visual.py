@@ -12,7 +12,7 @@ def distance_between(point1, point2):
     x2, y2 = point2
     return sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
-def demo_grading(hunter_bot, target_bot, next_move_fcn, OTHER = None):
+def demo_grading(hunter_bot, target_bot, next_move_fcn, n_particles,n_landmarks, OTHER = None):
     """Returns True if your next_move_fcn successfully guides the hunter_bot
     to the target_bot. This function is here to help you understand how we 
     will grade your submission."""
@@ -65,8 +65,13 @@ def demo_grading(hunter_bot, target_bot, next_move_fcn, OTHER = None):
         # The target broadcasts its noisy measurement
         target_measurement = target_bot.sense()
 
+        try:
+            next_move_fcn(hunter_position, hunter_bot.heading, target_measurement, max_distance, OTHER, n_particles, n_landmarks)
+        except:
+            print 'Error happened when calling next_move_fcn.'
+
         # This is where YOUR function will be called.
-        turning, distance, OTHER = next_move_fcn(hunter_position, hunter_bot.heading, target_measurement, max_distance, OTHER)
+        turning, distance, OTHER = next_move_fcn(hunter_position, hunter_bot.heading, target_measurement, max_distance, OTHER, n_particles, n_landmarks)
 
         # Don't try to move faster than allowed!
         if distance > max_distance:
@@ -85,6 +90,8 @@ def demo_grading(hunter_bot, target_bot, next_move_fcn, OTHER = None):
         broken_robot.goto(target_bot.x*size_multiplier, target_bot.y*size_multiplier-100)
         chaser_robot.setheading(hunter_bot.heading*180/pi)
         chaser_robot.goto(hunter_bot.x*size_multiplier, hunter_bot.y*size_multiplier-100)
+
+        
         #End of visualization
         ctr += 1            
         if ctr >= 1000:
@@ -107,12 +114,13 @@ def get_heading(hunter_position, target_position):
     heading = angle_trunc(heading)
     return heading
     
-def estimate_next_pos(measurement, est_other = None):
+def estimate_next_pos(n_particles,n_landmarks, measurement, est_other = None):
     """Particle filter would estimate the next location"""
 
-    N = 500
+    N = n_particles
 
-    #First time, this function is called 
+    #First time, this function is called
+    #the robot is directly moving to present location of the target, not estimating next location for the target
     if not est_other:
         est_other = measurement
         xy_estimate = measurement
@@ -125,7 +133,7 @@ def estimate_next_pos(measurement, est_other = None):
         heading = atan(dy/dx)
 
         world_size = distance*10
-        landmarks = [[random.random() * world_size,  random.random() * world_size] for i in range(8)]
+        landmarks = [[random.random() * world_size,  random.random() * world_size] for i in range(n_landmarks)]
         
         p = []
         for i in range(N):
@@ -200,13 +208,13 @@ def estimate_next_pos(measurement, est_other = None):
 
 
 
-def next_move(hunter_position, hunter_heading, target_measurement, max_distance, OTHER):
+def next_move(hunter_position, hunter_heading, target_measurement, max_distance, OTHER, n_particles, n_landmarks):
     if not OTHER: # first time calling this function, set up my OTHER variables.
         measurements = [target_measurement]
         hunter_positions = [hunter_position]
         hunter_headings = [hunter_heading]
         OTHER = (measurements, hunter_positions, hunter_headings)
-        xy_estimate, est_other = estimate_next_pos(target_measurement, est_other = None)
+        xy_estimate, est_other = estimate_next_pos(n_particles,n_landmarks, target_measurement, est_other = None)
 
         #using for PDI control, P
         CTE = 0
@@ -223,14 +231,14 @@ def next_move(hunter_position, hunter_heading, target_measurement, max_distance,
         OTHER[1].append(hunter_position)
         OTHER[2].append(hunter_heading)
 
-        xy_estimate, est_other = estimate_next_pos(target_measurement, OTHER[3][1])
+        xy_estimate, est_other = estimate_next_pos(n_particles,n_landmarks, target_measurement, OTHER[3][1])
         OTHER[3][0] =xy_estimate
         OTHER[3][1] = est_other
 
     #count trials in OTHER[6][0]
     OTHER[6][0]= OTHER[6][0] + 1
 
-    #when the agent close enough to catch the target
+    #when the agent is close enough to catch the target
     if distance_between(hunter_position, xy_estimate) < max_distance:
         heading_to_target = get_heading(hunter_position, xy_estimate)
         heading_difference = angle_trunc(heading_to_target-hunter_heading)
@@ -261,16 +269,23 @@ def next_move(hunter_position, hunter_heading, target_measurement, max_distance,
     OTHER[5][0] += turning
     return turning, distance, OTHER
 
-n = 1
+n = 50
 count = 0
-for i in range(2):
-    target = robot(0.0, 10.0, 0.0, 2*pi / 30, 1.5)
-    measurement_noise = .05*target.distance
-    target.set_noise(0.0, 0.0, measurement_noise)
-    hunter = robot(0, 0, 0.0)
-    print demo_grading(hunter, target, next_move)
-    if demo_grading(hunter, target, next_move) == True:
-        count += 1
-print float(count)/float(n)
-print count 
-print n
+sum_steps = 0
+
+#-------paramators for particle filter 
+#number of particles
+n_particles = 500
+#nuber of landmarks 
+n_landmarks = 8
+
+target = robot(0.0, 10.0, 0.0, 2*pi / 30, 1.5)
+measurement_noise = 0.05*target.distance # VERY NOISY!!
+target.set_noise(0.0, 0.0, measurement_noise)
+
+hunter = robot(-10.0, -10.0, 0.0)
+
+# print demo_grading(hunter, target, naive_next_move)
+print demo_grading(hunter, target, next_move, n_particles,n_landmarks, OTHER = None)
+
+

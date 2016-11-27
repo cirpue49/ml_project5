@@ -65,6 +65,7 @@ class robot:
         """This allows us to print a robot's position"""
         return '[%.5f, %.5f]'  % (self.x, self.y)
     
+    #setting particles for particle filter 
     def set_new(self, world_size):
         self.x = random.random() * world_size
         self.y = random.random() * world_size
@@ -73,12 +74,14 @@ class robot:
         self.distance_noise = 0.0
         self.measurement_noise   = 0.0
     
+    #measuring distance from the object to landmark
     def sense_landmark(self, landmarks):
         Z = []
         for i in range(len(landmarks)):
             dist = sqrt((self.x - landmarks[i][0]) ** 2 + (self.y - landmarks[i][1]) ** 2)
             Z.append(dist)
         return Z
+    
         
     def Gaussian(self, mu, sigma, x):
         
